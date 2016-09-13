@@ -144,12 +144,15 @@ static inline struct loopback_dirp *get_dirp(struct fuse_file_info *fi) {
   return (struct loopback_dirp *)(uintptr_t)fi->fh;
 }
 
+struct delayed_dir {
+  char entry_name[255 + 1];
+  struct stat st;
+  off_t nextoff;
+};
+
 static int loopback_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                             off_t offset, struct fuse_file_info *fi) {
   struct loopback_dirp *d = get_dirp(fi);
-
-  char curpath[1024];
-  fcntl(dirfd(d->dp), F_GETPATH, curpath);
 
   if (offset != d->offset) {
     seekdir(d->dp, offset);
@@ -157,10 +160,12 @@ static int loopback_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     d->offset = offset;
   }
 
-  while (1) {
-    struct stat st;
-    off_t nextoff;
+  struct delayed_dir default_dirs[2];
+  struct delayed_dir delayed_arr[1024];
+  int delayed_i = 0;
 
+  int isgitdir = 0;
+  while (1) {
     if (!d->entry) {
       d->entry = readdir(d->dp);
       if (!d->entry) {
@@ -168,42 +173,71 @@ static int loopback_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
       }
     }
 
-    // filter git repositories
-    int isgitdir = 0;
-    if (d->entry->d_type == DT_DIR) {
-      if (strcmp(d->entry->d_name, ".") == 0 || strcmp(d->entry->d_name, "..") == 0)
-        goto addfile;
-      char subpath[1024];
-      int len = snprintf(subpath, sizeof(subpath)-1, "%s/%s", curpath, d->entry->d_name);
-      subpath[len] = 0;
+/*     // filter git repositories */
+/*     int isgitdir = 0; */
+/*     if (d->entry->d_type == DT_DIR) { */
+/*       if (strcmp(d->entry->d_name, ".") == 0 || strcmp(d->entry->d_name, "..") == 0) */
+/*         goto addfile; */
+/*       char subpath[1024]; */
+/*       int len = snprintf(subpath, sizeof(subpath)-1, "%s/%s", curpath, d->entry->d_name); */
+/*       subpath[len] = 0; */
+/*  */
+/*       DIR *subdir; */
+/*       struct dirent *subentry; */
+/*       if (!(subdir = opendir(subpath))) goto addfile; */
+/*       if (!(subentry = readdir(subdir))) goto addfile; */
+/*  */
+/*       do { */
+/*         if (subentry->d_type == DT_DIR && strcmp(subentry->d_name, ".git") == 0) { */
+/*         d->ir = 1; */
+/*           break; */
+/*         } */
+/*       } while ((subentry = readdir(subdir))); */
+/*       closedir(subdir); */
+/*     } */
+/* addfile: */
 
-      DIR *subdir;
-      struct dirent *subentry;
-      if (!(subdir = opendir(subpath))) goto addfile;
-      if (!(subentry = readdir(subdir))) goto addfile;
-
-      do {
-        if (subentry->d_type == DT_DIR && strcmp(subentry->d_name, ".git") == 0) {
-          isgitdir = 1;
-          break;
-        }
-      } while ((subentry = readdir(subdir)));
-      closedir(subdir);
+    if (d->entry->d_type == DT_DIR && strcmp(d->entry->d_name, ".git") == 0) {
+      isgitdir = 1;
+      break;
     }
-addfile:
 
-    memset(&st, 0, sizeof(st));
-    nextoff = telldir(d->dp);
-    if (!isgitdir) {
-      st.st_ino = d->entry->d_ino;
-      st.st_mode = d->entry->d_type << 12;
-      if (filler(buf, d->entry->d_name, &st, nextoff)) {
-        break;
-      }
+    struct delayed_dir *delayed;
+    if (strcmp(d->entry->d_name, ".") == 0) {
+      delayed = &default_dirs[0];
+    } else if (strcmp(d->entry->d_name, "..") == 0) {
+      delayed = &default_dirs[1];
+    } else {
+      delayed = &delayed_arr[delayed_i++];
     }
+
+    strcpy(delayed->entry_name, d->entry->d_name);
+
+    struct stat *st = &delayed->st;
+    memset(st, 0, sizeof(struct stat));
+    st->st_ino = d->entry->d_ino;
+    st->st_mode = d->entry->d_type << 12;
+
+    delayed->nextoff = telldir(d->dp);
 
     d->entry = NULL;
-    d->offset = nextoff;
+    d->offset = delayed->nextoff;
+  }
+
+  struct delayed_dir *delayed;
+  for (int i = 0; i < 2; i++) {
+    delayed = &default_dirs[i];
+    if (filler(buf, delayed->entry_name, &delayed->st, delayed->nextoff)) {
+      return 0;
+    }
+  }
+  if (!isgitdir) {
+    for (int i = 0; i < delayed_i; i++) {
+      delayed = &delayed_arr[i];
+      if (filler(buf, delayed->entry_name, &delayed->st, delayed->nextoff)) {
+        return 0;
+      }
+    }
   }
 
   return 0;
