@@ -1,7 +1,0 @@
-*.dSYM/
-*.a
-*.dylib
-*.o
-
-.DS_Store
-loopback
