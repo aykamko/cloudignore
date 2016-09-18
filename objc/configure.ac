@@ -7,6 +7,7 @@ AC_INIT(
 
 AM_INIT_AUTOMAKE([no-define foreign subdir-objects])
 
+AC_PROG_OBJC
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PREREQ([2.59])

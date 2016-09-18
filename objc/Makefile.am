@@ -11,8 +11,7 @@ cloudignore_SOURCES = the_silver_searcher/src/ignore.c the_silver_searcher/src/i
 			 the_silver_searcher/src/lang.h the_silver_searcher/src/util.c \
 			 the_silver_searcher/src/util.h the_silver_searcher/src/decompress.c \
 			 the_silver_searcher/src/decompress.h the_silver_searcher/src/uthash.h \
-			 the_silver_searcher/src/main.c ./Support/NSError+POSIX.m \
-			 LoopbackFS.m loop.m
+			 ./Support/NSError+POSIX.m LoopbackFS.m loop.m
 cloudignore_LDADD = ${PCRE_LIBS} ${LZMA_LIBS} ${ZLIB_LIBS} $(PTHREAD_LIBS)
 
 .PHONY : all clean
