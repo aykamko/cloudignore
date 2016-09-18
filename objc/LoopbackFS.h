@@ -28,9 +28,11 @@
 // probably not a good idea to mount "/" through this filesystem.
 
 #import <Cocoa/Cocoa.h>
+#import "ignore.h"
 
 @interface LoopbackFS : NSObject  {
   NSString* rootPath_;   // The local file-system path to mount.
+  ignores *rootIgnores;
 }
 - (id)initWithRootPath:(NSString *)rootPath;
 
