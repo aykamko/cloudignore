@@ -39,12 +39,15 @@
 - (id)initWithRootPath:(NSString *)rootPath {
   if ((self = [super init])) {
     rootPath_ = [rootPath retain];
+    rootIgnore = init_ignore(NULL, "/Users/Aleks", 12);
+    load_ignore_patterns(rootIgnore, "/Users/Aleks/.cloudignore");
   }
   return self;
 }
 
 - (void) dealloc {
   [rootPath_ release];
+  cleanup_ignore(rootIgnore);
   [super dealloc];
 }
 
@@ -272,11 +275,21 @@
 
 - (NSArray *)contentsOfDirectoryAtPath:(NSString *)path error:(NSError **)error {
   NSString* p = [rootPath_ stringByAppendingString:path];
-  NSArray<NSString *> *dirContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:p error:error];
-  if ([dirContents containsObject: @".git"]) {
-    dirContents = @[];
+  NSArray<NSString *> *fullDirContents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:p error:error];
+  if ([fullDirContents containsObject: @".git"]) {
+    return @[];
   }
-  return dirContents;
+
+  NSMutableArray *filteredContents = [NSMutableArray array];
+  NSString *curFile;
+  for (int i = 0; i < [fullDirContents count]; i++) {
+    curFile = [fullDirContents objectAtIndex:i];
+    if (path_ignore_search(rootIgnore, [path UTF8String], [curFile UTF8String]) == 0) {
+      [filteredContents addObject:curFile];
+    }
+  }
+
+  return filteredContents;
 }
 
 #pragma mark Getting and Setting Attributes

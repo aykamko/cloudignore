@@ -32,7 +32,7 @@
 
 @interface LoopbackFS : NSObject  {
   NSString* rootPath_;   // The local file-system path to mount.
-  ignores *rootIgnores;
+  ignores *rootIgnore;
 }
 - (id)initWithRootPath:(NSString *)rootPath;
 
