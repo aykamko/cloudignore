@@ -26,7 +26,7 @@
 #import <OSXFUSE/GMUserFileSystem.h>
 #import "LoopbackFS.h"
 
-#define DEFAULT_MOUNT_PATH "/Volumes/loop"
+#define DEFAULT_MOUNT_PATH "/Volumes/cloudignore"
 
 int main(int argc, char* argv[]) {
   NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
@@ -52,7 +52,9 @@ int main(int argc, char* argv[]) {
                                                            isThreadSafe:YES];
 
   NSMutableArray* options = [NSMutableArray array];
-  [options addObject:@"debug"];
+  [options addObject:@"defer_permissions"];
+  [options addObject:@"fsname=cloudignore"];
+  [options addObject:@"volname=cloudignore"];
   [userFS mountAtPath:mountPath
           withOptions:options
      shouldForeground:YES

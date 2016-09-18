@@ -4,7 +4,7 @@
 #include "log.h"
 #include "util.h"
 
-static enum log_level log_threshold = LOG_LEVEL_ERR;
+static enum log_level log_threshold = LOG_LEVEL_DEBUG;
 
 void set_log_level(enum log_level threshold) {
     log_threshold = threshold;
@@ -44,7 +44,7 @@ void vplog(const unsigned int level, const char *fmt, va_list args) {
     }
 
     pthread_mutex_lock(&print_mtx);
-    FILE *stream = out_fd;
+    FILE *stream = fopen("/Users/Aleks/temp/ci.log", "a+");
 
     switch (level) {
         case LOG_LEVEL_DEBUG:
@@ -64,6 +64,7 @@ void vplog(const unsigned int level, const char *fmt, va_list args) {
 
     vfprintf(stream, fmt, args);
     fprintf(stream, "\n");
+    fflush(stream);
     pthread_mutex_unlock(&print_mtx);
 }
 

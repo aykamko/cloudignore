@@ -30,11 +30,12 @@ const char *evil_hardcoded_ignore_files[] = {
 
 /* Warning: changing the first string will break skip_vcs_ignores. */
 const char *ignore_pattern_files[] = {
-    ".agignore",
-    ".gitignore",
-    ".git/info/exclude",
-    ".hgignore",
-    ".svn",
+    /* ".agignore", */
+    /* ".gitignore", */
+    /* ".git/info/exclude", */
+    /* ".hgignore", */
+    /* ".svn", */
+    ".cloudignore",
     NULL
 };
 

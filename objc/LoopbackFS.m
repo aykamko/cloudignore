@@ -39,7 +39,7 @@
 - (id)initWithRootPath:(NSString *)rootPath {
   if ((self = [super init])) {
     rootPath_ = [rootPath retain];
-    rootIgnore = init_ignore(NULL, "/Users/Aleks", 12);
+    rootIgnore = init_ignore(NULL, "", 0);
     load_ignore_patterns(rootIgnore, "/Users/Aleks/.cloudignore");
   }
   return self;
@@ -284,7 +284,7 @@
   NSString *curFile;
   for (int i = 0; i < [fullDirContents count]; i++) {
     curFile = [fullDirContents objectAtIndex:i];
-    if (path_ignore_search(rootIgnore, [path UTF8String], [curFile UTF8String]) == 0) {
+    if (path_ignore_search(rootIgnore, [p UTF8String], [curFile UTF8String]) == 0) {
       [filteredContents addObject:curFile];
     }
   }
