@@ -45,7 +45,7 @@ void load_ignore_patterns(ignores *ig, const char *path);
 void load_svn_ignore_patterns(ignores *ig, const char *path);
 
 int filename_filter(const char *path, const struct dirent *dir, void *baton);
-int path_ignore_search(const ignores *ig, const char *path, const char *filename);
+int filename_filter_nobaton(const ignores *ig, const char *path, const char *filename, size_t filename_len, int is_dir);
 
 int is_empty(ignores *ig);
 

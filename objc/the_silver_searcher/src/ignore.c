@@ -275,7 +275,7 @@ static int ackmate_dir_match(const char *dir_name) {
 }
 
 /* This is the hottest code in Ag. 10-15% of all execution time is spent here */
-int path_ignore_search(const ignores *ig, const char *path, const char *filename) {
+static int path_ignore_search(const ignores *ig, const char *path, const char *filename) {
     char *temp;
     size_t i;
     int match_pos;
@@ -358,11 +358,6 @@ int filename_filter(const char *path, const struct dirent *dir, void *baton) {
         }
     }
 
-    if (!opts.follow_symlinks && is_symlink(path, dir)) {
-        log_debug("File %s ignored becaused it's a symlink", dir->d_name);
-        return 0;
-    }
-
     if (is_named_pipe(path, dir)) {
         log_debug("%s ignored because it's a named pipe", path);
         return 0;
@@ -424,6 +419,66 @@ int filename_filter(const char *path, const struct dirent *dir, void *baton) {
             char *temp;
             ag_asprintf(&temp, "%s/", filename);
             int rv = path_ignore_search(ig, path_start, temp);
+            free(temp);
+            if (rv) {
+                return 0;
+            }
+        }
+        ig = ig->parent;
+    }
+
+    log_debug("%s not ignored", filename);
+    return 1;
+}
+
+/* This function is REALLY HOT. It gets called for every file */
+int filename_filter_nobaton(const ignores *ig, const char *path, const char *filename, size_t filename_len, int is_dir) {
+    if (!opts.search_hidden_files && filename[0] == '.') {
+        return 0;
+    }
+
+    size_t i;
+    for (i = 0; evil_hardcoded_ignore_files[i] != NULL; i++) {
+        if (strcmp(filename, evil_hardcoded_ignore_files[i]) == 0) {
+            return 0;
+        }
+    }
+
+    // TODO: named pipes?
+
+    const char *extension = strchr(filename, '.');
+    if (extension) {
+        if (extension[1]) {
+            // The dot is not the last character, extension starts at the next one
+            ++extension;
+        } else {
+            // No extension
+            extension = NULL;
+        }
+    }
+
+    while (ig != NULL) {
+        if (strncmp(filename, "./", 2) == 0) {
+            filename++;
+            filename_len--;
+        }
+
+        if (extension) {
+            int match_pos = binary_search(extension, ig->extensions, 0, ig->extensions_len);
+            if (match_pos >= 0) {
+                log_debug("file %s ignored because name matches extension %s", filename, ig->extensions[match_pos]);
+                return 0;
+            }
+        }
+
+        if (path_ignore_search(ig, path, filename)) {
+            return 0;
+        }
+
+        if (is_dir && filename[filename_len - 1] != '/') {
+            char *temp;
+            ag_asprintf(&temp, "%s/", filename);
+            int rv = path_ignore_search(ig, path, temp);
             free(temp);
             if (rv) {
                 return 0;

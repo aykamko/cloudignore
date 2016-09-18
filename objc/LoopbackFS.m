@@ -281,10 +281,15 @@
   }
 
   NSMutableArray *filteredContents = [NSMutableArray array];
+  BOOL isDir;
   NSString *curFile;
+  NSString *fullPath;
   for (int i = 0; i < [fullDirContents count]; i++) {
     curFile = [fullDirContents objectAtIndex:i];
-    if (path_ignore_search(rootIgnore, [p UTF8String], [curFile UTF8String]) == 0) {
+    fullPath = [p stringByAppendingString:curFile];
+    [[NSFileManager defaultManager] fileExistsAtPath:fullPath isDirectory:&isDir];
+
+    if (filename_filter_nobaton(rootIgnore, [p UTF8String], [curFile UTF8String], [curFile length], @(isDir).integerValue)) {
       [filteredContents addObject:curFile];
     }
   }
